@@ -11,9 +11,17 @@ std::map<std::string, Texture*> textures;
 
 static void init_game(Scene& scene)
 {
+	auto mesh_plane = meshes.find("Plane")->second;
 	scene.entities.reserve(100);
-	scene.player.mesh = meshes.find("Plane")->second;
+	scene.player.mesh = mesh_plane;
 	scene.player.texture = textures.find("space_ship")->second;
+
+	Entity enemy;
+	enemy.position = glm::vec3(0.0f, 50.0f, 0.0f);
+	enemy.mesh = mesh_plane;
+	enemy.texture = textures.find("enemy_space_ship")->second;
+
+	scene.entities.push_back(enemy);
 }
 
 static void render_game(Scene& scene, Camera& camera)
@@ -79,6 +87,7 @@ static void init_resources()
 	meshes["Plane"] = std::move(plane);
 
 	textures["space_ship"] = create_texture("SpaceInvaders/data/textures/space_ship.png");
+	textures["enemy_space_ship"] = create_texture("SpaceInvaders/data/textures/enemy_space_ship.png");
 }
 
 int main()

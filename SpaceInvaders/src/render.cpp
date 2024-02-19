@@ -522,18 +522,58 @@ void draw(const Scene& scene, const Camera& camera)
 		vkUpdateDescriptorSets(state->device, 1, &write, 0, VK_NULL_HANDLE);
 	}
 
-	VertexPushConstant pc;
-	pc.model = glm::translate(glm::mat4(1.0f), glm::vec3(scene.player.position)) * glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));
-	pc.view_projection = camera.get_view_projection();
+	// Draw player
+	{
+		VertexPushConstant pc;
+		pc.model = glm::translate(glm::mat4(1.0f), glm::vec3(scene.player.position)) * glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));
+		pc.view_projection = camera.get_view_projection();
 
-	vkCmdPushConstants(cmd, state->forward_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VertexPushConstant), &pc);
+		vkCmdPushConstants(cmd, state->forward_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VertexPushConstant), &pc);
 
-	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state->forward_pipeline_layout, 0, 1, &material_set, 0, VK_NULL_HANDLE);
+		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state->forward_pipeline_layout, 0, 1, &material_set, 0, VK_NULL_HANDLE);
 
-	VkDeviceSize offset = 0;
-	vkCmdBindVertexBuffers(cmd, 0, 1, &scene.player.mesh->vertex_buffer.buffer, &offset);
-	vkCmdBindIndexBuffer(cmd, scene.player.mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT16);
-	vkCmdDrawIndexed(cmd, (uint32_t)scene.player.mesh->indices.size(), 1, 0, 0, 0);
+		VkDeviceSize offset = 0;
+		vkCmdBindVertexBuffers(cmd, 0, 1, &scene.player.mesh->vertex_buffer.buffer, &offset);
+		vkCmdBindIndexBuffer(cmd, scene.player.mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdDrawIndexed(cmd, (uint32_t)scene.player.mesh->indices.size(), 1, 0, 0, 0);
+	}
+
+	// Draw enemies
+	for (auto& e : scene.entities)
+	{
+		VertexPushConstant pc;
+		pc.model = glm::translate(glm::mat4(1.0f), glm::vec3(e.position)) * glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));
+		pc.view_projection = camera.get_view_projection();
+
+		vkCmdPushConstants(cmd, state->forward_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VertexPushConstant), &pc);
+
+		VkDescriptorSet enemy_material_set = state->frame_data[state->frame_index].descriptor_allocator->allocate(state->device, state->material_set_layout);
+		{
+			VkDescriptorImageInfo image_info{
+			.sampler = state->sampler,
+			.imageView = e.texture->image_view,
+			.imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+			};
+
+			VkWriteDescriptorSet write{
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.dstSet = enemy_material_set,
+				.dstBinding = 0,
+				.descriptorCount = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.pImageInfo = &image_info,
+			};
+
+			vkUpdateDescriptorSets(state->device, 1, &write, 0, VK_NULL_HANDLE);
+		}
+
+		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state->forward_pipeline_layout, 0, 1, &enemy_material_set, 0, VK_NULL_HANDLE);
+
+		VkDeviceSize offset = 0;
+		vkCmdBindVertexBuffers(cmd, 0, 1, &e.mesh->vertex_buffer.buffer, &offset);
+		vkCmdBindIndexBuffer(cmd, e.mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdDrawIndexed(cmd, (uint32_t)e.mesh->indices.size(), 1, 0, 0, 0);
+	}
 
 	vkCmdEndRendering(cmd);
 

@@ -15,9 +15,9 @@ struct Entity
 	Mesh* mesh = nullptr;
 	Texture* texture = nullptr;
 
-	virtual void update(const float delta_time)
+	virtual void update(const float /*delta_time*/)
 	{
-		position.x += delta_time;
+		//position.x += delta_time;
 		printf("Entity in transform!\n");
 	}
 
