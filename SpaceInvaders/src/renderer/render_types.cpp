@@ -133,6 +133,15 @@ void PipelineBuilder::set_multisampling_none()
 	multisampling.alphaToOneEnable = VK_FALSE;
 }
 
+void PipelineBuilder::set_input_attribute(std::vector<VkVertexInputAttributeDescription> attr_descriptions, size_t stride_size)
+{
+	attribute_descriptions = std::move(attr_descriptions);
+
+	input_binding.binding = 0;
+	input_binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	input_binding.stride = static_cast<uint32_t>(stride_size);
+}
+
 void PipelineBuilder::disable_blending()
 {
 	color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -166,49 +175,12 @@ void PipelineBuilder::disable_depth_test()
 
 VkPipeline PipelineBuilder::build(VkDevice device)
 {
-	VkVertexInputAttributeDescription pos_attr_desc{
-		.location = 0,
-		.binding = 0,
-		.format = VK_FORMAT_R32G32B32_SFLOAT,
-		.offset = offsetof(Vertex, position),
-	};
-
-	VkVertexInputAttributeDescription uv_attr_desc{
-		.location = 1,
-		.binding = 0,
-		.format = VK_FORMAT_R32G32_SFLOAT,
-		.offset = offsetof(Vertex, uv),
-	};
-
-	VkVertexInputAttributeDescription normal_attr_desc{
-		.location = 2,
-		.binding = 0,
-		.format = VK_FORMAT_R32G32B32_SFLOAT,
-		.offset = offsetof(Vertex, normal),
-	};
-
-	VkVertexInputAttributeDescription color_attr_desc{
-		.location = 3,
-		.binding = 0,
-		.format = VK_FORMAT_R32G32B32A32_SFLOAT,
-		.offset = offsetof(Vertex, color),
-	};
-
-	VkVertexInputAttributeDescription attribute_descriptor[4] = { pos_attr_desc, uv_attr_desc, normal_attr_desc, color_attr_desc };
-
-	VkVertexInputBindingDescription input_binding{
-		.binding = 0,
-		.stride = sizeof(Vertex),
-		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-	};
-
-	// TODO Add this through functions.
 	VkPipelineVertexInputStateCreateInfo vertex_input_info{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 		.vertexBindingDescriptionCount = 1,
 		.pVertexBindingDescriptions = &input_binding,
-		.vertexAttributeDescriptionCount = 4,
-		.pVertexAttributeDescriptions = attribute_descriptor,
+		.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute_descriptions.size()),
+		.pVertexAttributeDescriptions = attribute_descriptions.data(),
 	};
 
 	VkViewport viewport{

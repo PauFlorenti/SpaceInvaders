@@ -239,6 +239,33 @@ static void init_forward_pipelines()
 		printf("[ERROR]: Error building the forward fragment shader.");
 	}
 
+	std::vector<VkVertexInputAttributeDescription> input_attributes{
+		{
+			.location = 0,
+			.binding = 0,
+			.format = VK_FORMAT_R32G32B32_SFLOAT,
+			.offset = offsetof(Vertex, position),
+		},
+		{
+			.location = 1,
+			.binding = 0,
+			.format = VK_FORMAT_R32G32_SFLOAT,
+			.offset = offsetof(Vertex, uv),
+		},
+		{
+			.location = 2,
+			.binding = 0,
+			.format = VK_FORMAT_R32G32B32_SFLOAT,
+			.offset = offsetof(Vertex, normal),
+		},
+		{
+			.location = 3,
+			.binding = 0,
+			.format = VK_FORMAT_R32G32B32A32_SFLOAT,
+			.offset = offsetof(Vertex, color),
+		}
+	};
+
 	VkPushConstantRange push_constant_range{
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
 		.offset = 0,
@@ -260,6 +287,7 @@ static void init_forward_pipelines()
 	builder.set_shaders(vertex_shader, VK_SHADER_STAGE_VERTEX_BIT);
 	builder.set_shaders(fragment_shader, VK_SHADER_STAGE_FRAGMENT_BIT);
 	builder.set_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+	builder.set_input_attribute(std::move(input_attributes), sizeof(Vertex));
 	builder.set_polygon_mode(VK_POLYGON_MODE_FILL);
 	builder.set_cull_mode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE);
 	builder.set_multisampling_none();

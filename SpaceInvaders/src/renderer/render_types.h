@@ -87,8 +87,10 @@ struct DescriptorAllocator
 struct PipelineBuilder
 {
 	std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
+	std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
 
 	VkPipelineInputAssemblyStateCreateInfo input_assembly;
+	VkVertexInputBindingDescription input_binding;
 	VkPipelineRasterizationStateCreateInfo rasterizer;
 	VkPipelineColorBlendAttachmentState color_blend_attachment;
 	VkPipelineMultisampleStateCreateInfo multisampling;
@@ -104,6 +106,7 @@ struct PipelineBuilder
 	void set_polygon_mode(VkPolygonMode polygon_mode);
 	void set_cull_mode(VkCullModeFlags cull_mode_flags, VkFrontFace front_face);
 	void set_multisampling_none();
+	void set_input_attribute(std::vector<VkVertexInputAttributeDescription> attr_descriptions, size_t stride_size);
 	void disable_blending();
 	void set_color_attachment_format(VkFormat format);
 	void set_depth_format(VkFormat format);
