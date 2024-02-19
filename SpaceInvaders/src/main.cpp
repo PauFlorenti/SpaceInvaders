@@ -8,20 +8,44 @@
 
 std::map<std::string, Mesh*> meshes;
 std::map<std::string, Texture*> textures;
+std::map<std::string, Material*> materials;
 
 static void init_game(Scene& scene)
 {
 	auto mesh_plane = meshes.find("Plane")->second;
 	scene.entities.reserve(100);
-	scene.player.mesh = mesh_plane;
-	scene.player.texture = textures.find("space_ship")->second;
 
-	Entity enemy;
-	enemy.position = glm::vec3(0.0f, 50.0f, 0.0f);
-	enemy.mesh = mesh_plane;
-	enemy.texture = textures.find("enemy_space_ship")->second;
+	Player* player = new Player();
+	player->mesh = mesh_plane;
+	player->material = materials.find("player")->second;
+
+	scene.entities.push_back(player);
+
+	Enemy* enemy = new Enemy();
+	enemy->position = glm::vec3(0.0f, 50.0f, 0.0f);
+	enemy->mesh = mesh_plane;
+	enemy->material = materials.find("enemy")->second;
 
 	scene.entities.push_back(enemy);
+
+	Meteor* meteor = new Meteor();
+	meteor->position = glm::vec3(0.0f, -100.0f, 0.0f);
+	meteor->mesh = mesh_plane;
+	meteor->material = materials.find("meteor")->second;
+
+	Meteor* meteor1 = new Meteor();
+	meteor1->position = glm::vec3(-100.0f, -100.0f, 0.0f);
+	meteor1->mesh = mesh_plane;
+	meteor1->material = materials.find("meteor")->second;
+
+	Meteor* meteor2 = new Meteor();
+	meteor2->position = glm::vec3(100.0f, -100.0f, 0.0f);
+	meteor2->mesh = mesh_plane;
+	meteor2->material = materials.find("meteor")->second;
+
+	scene.entities.push_back(meteor);
+	scene.entities.push_back(meteor1);
+	scene.entities.push_back(meteor2);
 }
 
 static void render_game(Scene& scene, Camera& camera)
@@ -30,11 +54,7 @@ static void render_game(Scene& scene, Camera& camera)
 
 		};
 
-	auto render_entities = [](const Scene& scene) {
-		for (const auto& ent : scene.entities)
-		{
-			ent.draw();
-		}
+	auto render_entities = [](const Scene& /*scene*/) {
 		};
 
 	auto render_ui = []()
@@ -60,11 +80,9 @@ static void update_game(Scene& scene, const float delta_time)
 		printf("Key F pressed!");
 	}
 
-	scene.player.update(delta_time);
-
 	for (auto& ent : scene.entities)
 	{
-		ent.update(delta_time);
+		ent->update(delta_time);
 	}
 }
 
@@ -88,6 +106,23 @@ static void init_resources()
 
 	textures["space_ship"] = create_texture("SpaceInvaders/data/textures/space_ship.png");
 	textures["enemy_space_ship"] = create_texture("SpaceInvaders/data/textures/enemy_space_ship.png");
+	textures["meteor"] = create_texture("SpaceInvaders/data/textures/meteor.png");
+
+	{
+		Material* m = new Material();
+		m->albedo = textures.find("space_ship")->second;
+		materials["player"] = std::move(m);
+	}
+	{
+		Material* m = new Material();
+		m->albedo = textures.find("enemy_space_ship")->second;
+		materials["enemy"] = std::move(m);
+	}
+	{
+		Material* m = new Material();
+		m->albedo = textures.find("meteor")->second;
+		materials["meteor"] = std::move(m);
+	}
 }
 
 int main()

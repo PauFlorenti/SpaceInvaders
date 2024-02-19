@@ -4,27 +4,17 @@
 #include <input.h>
 
 struct Mesh;
-struct Texture;
+struct Material;
 
 extern InputState input_state;
 
 struct Entity
 {
 	glm::vec3 position = glm::vec3(0.0f);
-	glm::mat4 transform;
 	Mesh* mesh = nullptr;
-	Texture* texture = nullptr;
+	Material* material = nullptr;
 
-	virtual void update(const float /*delta_time*/)
-	{
-		//position.x += delta_time;
-		printf("Entity in transform!\n");
-	}
-
-	virtual void draw() const
-	{
-
-	}
+	virtual void update(const float /*delta_time*/) {};
 };
 
 struct Player : Entity
@@ -32,8 +22,17 @@ struct Player : Entity
 	void update(const float delta_time) override;
 };
 
+struct Enemy : Entity
+{
+	void update(const float /*delta_time*/) override {};
+};
+
+struct Meteor : Entity
+{
+	void update(const float delta_time) override;
+};
+
 struct Scene
 {
-	std::vector<Entity> entities;
-	Player player;
+	std::vector<Entity*> entities;
 };

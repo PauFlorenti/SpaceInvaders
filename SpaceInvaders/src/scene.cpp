@@ -24,3 +24,8 @@ void Player::update(const float delta_time)
 		position.y += delta_time * 0.1f;
 	}
 }
+
+void Meteor::update(const float delta_time)
+{
+	position.y += delta_time * 0.4f;
+}
