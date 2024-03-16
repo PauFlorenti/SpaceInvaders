@@ -7,6 +7,7 @@
 #include <fstream>
 #include <functional>
 #include <map>
+#include <iterator>
 #include <iostream>
 #include <span>
 #include <vector>

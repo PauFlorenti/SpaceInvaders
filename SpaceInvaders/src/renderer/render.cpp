@@ -1,11 +1,12 @@
 
-#include <camera.h>
+#include <engine/camera.h>
+#include <engine/scene.h>
+#include <game/entities/entity.h>
 #include <renderer/buffer.h>
 #include <renderer/render.h>
 #include <renderer/render_types.h>
 #include <renderer/texture.h>
 #include <renderer/utils.h>
-#include <scene.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #pragma warning(disable : 4244)
@@ -435,7 +436,7 @@ bool begin_draw()
 	return true;
 }
 
-void draw(const Scene& scene, const Camera& camera)
+void draw(Scene& scene, const Camera& camera)
 {
 	const auto cmd = state->frame_data[state->frame_index].command_buffer;
 	const auto swapchain_image = state->swapchain.images[state->swapchain.image_index];
@@ -502,12 +503,51 @@ void draw(const Scene& scene, const Camera& camera)
 
 	vkCmdSetScissor(cmd, 0, 1, &scissor);
 
+	// Draw background
+	{
+		VertexPushConstant pc;
+		pc.model = glm::scale(glm::mat4(1.0f), glm::vec3(state->swapchain.extent.width, state->swapchain.extent.height, 1.0f));
+		pc.view_projection = camera.get_view_projection();
+
+		vkCmdPushConstants(cmd, state->forward_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VertexPushConstant), &pc);
+
+		VkDescriptorSet background_set = state->frame_data[state->frame_index].descriptor_allocator->allocate(state->device, state->material_set_layout);
+		{
+			VkDescriptorImageInfo image_info{
+			.sampler = state->sampler,
+			.imageView = scene.background->material->albedo->image_view,
+			.imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+			};
+
+			VkWriteDescriptorSet write{
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.dstSet = background_set,
+				.dstBinding = 0,
+				.descriptorCount = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.pImageInfo = &image_info,
+			};
+
+			vkUpdateDescriptorSets(state->device, 1, &write, 0, VK_NULL_HANDLE);
+		}
+
+		vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state->forward_pipeline_layout, 0, 1, &background_set, 0, VK_NULL_HANDLE);
+
+		VkDeviceSize offset = 0;
+		vkCmdBindVertexBuffers(cmd, 0, 1, &scene.background->mesh->vertex_buffer.buffer, &offset);
+		vkCmdBindIndexBuffer(cmd, scene.background->mesh->index_buffer.buffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdDrawIndexed(cmd, (uint32_t)scene.background->mesh->indices.size(), 1, 0, 0, 0);
+	}
+
 	// Draw enemies
 	Material* current_material = nullptr;
 	for (const auto e : scene.entities)
 	{
+		if (!e->mesh || !e->material)
+			continue;
+
 		VertexPushConstant pc;
-		pc.model = glm::translate(glm::mat4(1.0f), glm::vec3(e->position)) * glm::scale(glm::mat4(1.0f), glm::vec3(50.0f));
+		pc.model = glm::translate(glm::mat4(1.0f), glm::vec3(e->position)) * glm::scale(glm::mat4(1.0f), e->scale);
 		pc.view_projection = camera.get_view_projection();
 
 		vkCmdPushConstants(cmd, state->forward_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VertexPushConstant), &pc);
@@ -537,7 +577,6 @@ void draw(const Scene& scene, const Camera& camera)
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, state->forward_pipeline_layout, 0, 1, &enemy_material_set, 0, VK_NULL_HANDLE);
 			current_material = e->material;
 		}
-
 
 		VkDeviceSize offset = 0;
 		vkCmdBindVertexBuffers(cmd, 0, 1, &e->mesh->vertex_buffer.buffer, &offset);
@@ -621,6 +660,13 @@ Texture* create_texture(const std::string texture)
 
 	stbi_image_free(pixels);
 
+	return t;
+}
+
+Texture* create_texture(void* data, VkExtent3D extent, VkFormat format, VkImageUsageFlags usage_flags)
+{
+	Texture* t = new Texture();
+	*t = create_texture(state, extent, format, usage_flags, VK_IMAGE_ASPECT_COLOR_BIT, data);
 	return t;
 }
 
